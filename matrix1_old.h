@@ -1,11 +1,6 @@
 #ifndef MATRIX1
 #define MATRIX1
 
-
-/*lapack関連プロトタイプ宣言*/
-//-------------------------------------------------------------------------------------------//
-
-//行列乗算
 void dgemm_(char *transA, char *transB, int *m, int *n, int *k, double *alpha, double *A, int *lda, double *B, int *ldB, double *beta, double *C, int *ldc);
 void dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
 void dgetri_(int *n, double *a, int *lda, int *ipiv, double *work, int *lwork, int *info);
@@ -19,18 +14,7 @@ void dscal_(int *n, double *da, double *dx, int *incx);
 void daxpy_(int *n, double *da, double *dx, int *incx, double *dy, int *incy);
 //シューア分解
 void dgees_(char *jobvs, char *sort, bool (*SELECT)(double, double), int *n, double *A, int *lda, int *sdim, double *wr, double *wi, double *vs, int *ldvs, double *work, int *lwork, bool *bwork, int *info);
-//qr分解用
-void dgeqr2_(int *m, int *n, double *a, int *lda, double *tau, double *work, int *info);
-void dgeqrf_(int *m, int *n, double *a, int *lda, double *tau, double *work, int *lwork, int *info); //こっちでいい
 
-//行列normの計算 norm='f'ならdnrm2と(たぶん)同じ
-double dlange_(char *norm, int *m, int *n, double *a, int *lda, double *work);
-
-//行列コピー
-void dlacpy_(char *uplo, int *m, int *n, double *A, int *lda, double *B, int *ldb);
-
-void dorgqr_(int *m, int *n, int *k, double *A, int *lda, double *tau, double *work, int *lwork, int *info);
-//------------------------------------------------------------------------------------------//
 
 //逆行列計算
 void matrix_inv(double *a, int size);
@@ -49,10 +33,8 @@ void mat_multi(double *a, double *b, double *a2, int size);
 //sizeには行列の要素数を入れる
 void mat_sum(double *a, double *b, int size, int da);
 
-//入力行列が対称な場合のときに2つの行列の和を計算するための関数
 void mat_sum_sym(double *a, double *b, int n);
 
-//mat_sumでlapackルーチンを使わない版．これはlapack版との性能を比較したいときに使うのがいいかも
 void mat_sum_osoi(double *a, double *b, int n);
 
 
@@ -69,15 +51,9 @@ void mat_multidouble(double *a, double x, int size);
 //n*m行列, Iは単位行列
 void setmatrix(double *A, double *I, int n, int m, double emax, double emin);
 
-//seedを引数によって変えられるようにする
 void setmatrix2(double *A, double *I, int n, int m, double emax, double emin, int seed);
 
-//単位行列を計算しない関数
-void setmatrix3(double *A, int n, double emax, double emin, int seed);
-
-//aをシューア分解し，計算後シューア標準形が入る．vsにはシューアベクトル行列が入る
 void schur(double *a, double *vs, int size);
-
 
 void mat_T(double *a, double *at, int size);
 
@@ -90,21 +66,5 @@ void identity(double *I, int n);
 double calc_rerr_id(double *A, int size);
 
 double calc_err_id(double *A, int size);
-
-void qr(double *q, double *r, int nsize);
-
-double dif_norm(double *A, double *B, int n);
-
-void matcpy(double *A, double *B, int n);
-
-void setmatrix_X(double *A, int n, double emax, double emin, int seed, double cond, char qrs);
-
-void setmatrix_sym(double A[], int n, double emax, double emin, int seed);
-
-double normf(double *A, int n);
-
-void sign_jordan(double *eig, double *evec, int size);
-
-void setmatrix_sym2(double *A, int n, double emax, double emin, int seed, double *ans, char ch);
 
 #endif

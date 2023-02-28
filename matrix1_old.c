@@ -4,12 +4,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include "matrix1.h"
 //#include <mpi.h>
 
 //#define SIZE 10
 
-/*プロトタイプ宣言はヘッダファイルで行っているからここで書く必要はなかった
 void dgemm_(char *transA, char *transB, int *m, int *n, int *k, double *alpha, double *A, int *lda, double *B, int *ldB, double *beta, double *C, int *ldc);
 void dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
 void dgetri_(int *n, double *a, int *lda, int *ipiv, double *work, int *lwork, int *info);
@@ -18,10 +16,7 @@ void dgesv_(int *n, int *nrhs, double *a, int *lda, int *ipiv, double *B, int *l
 void dscal_(int *n, double *da, double *dx, int *incx);
 void daxpy_(int *n, double *da, double *dx, int *incx, double *dy, int *incy);
 void dgees_(char *jobvs, char *sort, bool (*SELECT)(double, double), int *n, double *A, int *lda, int *sdim, double *wr, double *wi, double *vs, int *ldvs, double *work, int *lwork, bool *bwork, int *info);
-void dgeqr2_(int *m, int *n, double *a, int *lda, double *tau, double *work, int *info);
-*/
 
-void dgees_(char *jobvs, char *sort, bool (*SELECT)(double, double), int *n, double *A, int *lda, int *sdim, double *wr, double *wi, double *vs, int *ldvs, double *work, int *lwork, bool *bwork, int *info);
 bool SELECT(const double wr, const double wi){
     return true;
 }
@@ -59,7 +54,7 @@ void mat_multi(double a[], double b[], double a2[], int size){
     return;
 }
 
-//行列の和を計算する関数 n*n正方行列 aにbを加える a = a + b
+//行列の和を計算する関数 n*n正方行列 aにbを加える
 //lapackサブルーチンdaxpyを利用
 //出力結果は5番目の引数、DYに入っている(ここではdaxpyの5番目の引数には配列aを入れてるのでaの結果が更新される)
 //dy = dy + αdxを計算。α=1とすれば純粋な加算
@@ -179,43 +174,6 @@ void setmatrix2(double A[], double I[], int n, int m, double emax, double emin, 
 
     return ;
 }
-
-//setmatrix関数で今まで単位行列を作成していたが，誤差ノルムを求める関数を作成したため，その必要がなくなった．
-//行列は正方行列
-void setmatrix3(double A[], int n, double emax, double emin, int seed){
-    double X[n*n], a[n*n]; //まず適当な行列を作成する
-    double Xinv[n*n];
-    srand(seed);//計算結果比較のためシード固定
-    //srand((unsigned)time(NULL));
-    for(int i = 0; i < n*n; ++i){
-        X[i] = ((double)rand()/ ((double)RAND_MAX + 1));
-        Xinv[i] = X[i];
-    }
-    //print_mat(X, n, n);
-    for(int i=0; i < n*n; i++){
-        if(i == 0){ //1つ目の対角成分
-            a[i] = emax;
-        }
-        else if(i == (1*n+1)){ //2つ目の対角成分
-            a[i] = emin;
-        }
-        else if((i/n)==(i%n)){ //それ以外の対角成分
-            a[i] = ((double)rand()/ ((double)RAND_MAX))*(emax-emin) + emin;
-        }
-        else{ //対角成分以外は0
-            a[i] = 0.0;
-        }
-    }
-    
-    matrix_inv(Xinv, n);
-    double tmp[n*n];
-    mat_multi(X, a, tmp, n); //tmp = X@a
-    mat_multi(tmp, Xinv, A, n); //A = tmp@Xinv
-
-    return ;
-}
-
-
 //シューア分解を行う関数
 //aをシューア分解し，計算後シューア標準形が入る．vsにはシューアベクトル行列が入る
 void schur(double *a, double *vs, int size){
@@ -228,7 +186,6 @@ void schur(double *a, double *vs, int size){
 }
 
 //行列aの転置をatに入れる sizeは行の長さ
-/*
 void mat_T(double *a, double *at, int size){
     for(int i = 0; i < size; i++){
         at[i*size + i] = a[i*size + i];
@@ -243,21 +200,6 @@ void mat_T(double *a, double *at, int size){
     }
     return;
 }
-*/
-
-void mat_T(double *a, double *at, int size){
-    for(int i=0; i < size; i++){
-        for(int j = i; j < size; j++){
-            if(i == j){
-                at[i + j*size] = a[i + j*size];
-            }else{
-                at[i+j*size] = a[j+i*size];
-                at[j + i*size] = a[i + j*size];
-            }
-        }
-    }
-}
-
 
 //行列の差を求める
 void mat_diff(double dif[], double A[], double sol[], int size){
@@ -376,7 +318,6 @@ double calc_rerr_id(double *A, int size){
     return normdif/normsol;
 }
 
-//単位行列の絶対誤差を求める 正方行列とする．引数にはn*nのnを入れる．(行か列のサイズ)
 //返り値として絶対誤差を求める
 double calc_err_id(double *A, int size){
     //incxは1にすることで全要素の計算ができる
@@ -395,279 +336,4 @@ double calc_err_id(double *A, int size){
     normdif = dnrm2_(&nn, dif, &incx);
 
     return normdif;
-}
-
-//以下の関数はこのファイル内でのみ使用するのでstatic関数とする．
-//もし，他でも使用する場合は，staticを外してヘッダファイルで関数宣言を行う．
-/*
-static int max_val(int n1, int n2){
-    return (n1 >= n2) ? n1: n2;
-}*/
-
-//qr分解する．rのところに入力行列を入れる
-void qr(double *q, double *r, int size){
-    int n = size, lda = size, info, lwork=-1;
-
-    double tau[n] , work_query;
-
-    dgeqrf_(&n, &n, r, &lda, tau, &work_query, &lwork, &info);
-    lwork = (int)work_query;
-    double work[lwork];
-    dgeqrf_(&n, &n, r, &lda, tau, work, &lwork, &info);
-    matcpy(r, q, n); //rをコピーしてqをdorgqrによって求める
-    dorgqr_(&n, &n, &n, q, &lda, tau, work, &lwork, &info);
-    //print_mat(q, n, n);
-    
-    //rは上三角部分のみ．それ以外のところも利用したいときはプログラムを変える
-    for(int i = 0; i < n; i++){
-        for(int j = 0; j < n; j++){
-            if(i > j){
-                r[i + j*n] = 0.0;
-            }
-        }
-    }
-    //print_mat(q, n, n);  
-}
-
-
-
-/*---------------------------------------------------
-2つの行列(ベクトル)の差のフロベニウスノルムを返す関数
-正方行列
-
-daxpyを使う
-
-dlangeはdnrm2と違って引数normを変更することで異なる行列ノルムが計算できる．
-なので，もし必要であればdif_normの引数にもchar型の引数を入れることによって関数側から変更できるようにしてもいいかもしれない
----------------------------------------------------------*/
-double dif_norm(double *A, double *B, int n){
-    //まずA-Bを求める
-    double dif[n*n], da = -1.0, work[n], ans;
-    memcpy(dif, A, sizeof(dif));
-    int incx = 1, incy = 1, nn = n*n;
-    daxpy_(&nn, &da, B, &incx, dif, &incy);
-    //ノルムの計算
-    char norm = 'f';
-    ans = dlange_(&norm, &n, &n, dif, &n, work);
-
-    return ans;
-}
-
-//正方行列AをBにコピー nは行か列サイズ
-void matcpy(double *A, double *B, int n){
-    char uplo = 'a'; //aじゃくなてもなんでもいい
-    dlacpy_(&uplo, &n, &n, A, &n, B, &n);
-    return ;
-}
-
-/*--------------------------------------------------------------------------
-固有値を事前に設定した行列Aは次のように作られる
-A = XΛX^(-1)
-ここでXについても条件数を指定して作られるようにしたい．
-まず条件数最低の1の場合はXが直交行列となり，Aは対称行列となる．
-Xの条件数が大きくなるほど対称から遠のいていくようになるだろう
-
-今まで同様にΛについても最大固有値，最小固有値を決める
-
-*正方行列とする
-引数: double *A(in, out),int n(row size), double emax(max e'value),
-      double emin(min e'value), int seed(random seed), double cond(X's condition number)
-
-流れ
-    条件数condの行列Xを作成する(条件数1の場合は)
-        if(cond == 1)X = Q
-        else X = BbB^(-1) このbは条件数がcondになるように調整する
-            diag(b) = {x: 1 < x < cond}
-    
-    行列Bはまずランダムに生成し，それをQR分解して行列Qを用いる(直交行列が使いたい)
-        なぜ直交行列なのか？行列が正規行列でないと固有値の幅で条件数を推定できないため
-    上記で作成したXを用いて固有値分布が(emin, emax)の行列を作成する
-    A = XaX^(-1)
-
-
-2023/2/20
-引数にqrsを追加
-qrs = 'Y': このとき，BをQR分解してQを新たなBとする
-qrs = 'N': QR分解をしない
-----------------------------------------------------------------------------*/
-
-void setmatrix_X(double *A, int n, double emax, double emin, int seed, double cond, char qrs){
-    int mat_size = n*n;
-    double B[mat_size], Binv[mat_size], X[mat_size], Xinv[mat_size], b[mat_size], a[mat_size];
-    srand(seed);
-    //srand((unsigned)time(NULL));
-
-    //以下のループでBおよびBinv, a, bを作成
-    for(int i = 0; i < mat_size; i++){
-        B[i] = (double)rand()/((double)RAND_MAX+1);
-        Binv[i] = B[i];
-
-        if(i == 0){//1つ目の対角成分
-            b[i] = cond;
-            a[i] = emax;
-        }
-        else if(i == (1)*n+1){//最後の対角成分
-            b[i] = 1.0;
-            a[i] = emin;
-        }
-        else if((i/n) == (i%n)){//それ以外の対角成分
-            b[i] = ((double)rand()/((double)RAND_MAX))*(cond-1.0) + 1.0;
-            a[i] = ((double)rand()/ ((double)RAND_MAX))*(emax-emin) + emin;
-        }
-        else{//対角成分以外は0
-            b[i] = 0.0;
-            a[i] = 0.0;
-        }
-    }
-    if(qrs == 'Y'){
-        double q[mat_size], r[mat_size];
-        matcpy(B, r, n);
-        qr(q, r, n);
-        matcpy(q, B, n);
-        matcpy(B, Binv, n);
-    }
-
-    matrix_inv(Binv, n);
-    double tmp[mat_size];
-    mat_multi(B, b, tmp, n);
-    mat_multi(tmp, Binv, X, n);//この段階でX完成
-    //XをXinvにコピーして逆行列を作成する
-    matcpy(X, Xinv, n);
-    matrix_inv(Xinv, n);
-    mat_multi(X, a, tmp, n);
-    mat_multi(tmp, Xinv, A, n);
-
-    return ;
-}
-
-/*-----------------------------------------------------------
-
-ランダムで固有値範囲が指定された範囲内である対称行列を作成
-
-    まずランダムに行列Xを作成
-    そのXをQR分解
-    Qは直交行列なので・・・
-    QaQ^(-1)は対称行列となる
-
---------------------------------------------------------------*/
-
-void setmatrix_sym(double *A, int n, double emax, double emin, int seed){
-    double X[n*n], a[n*n], q[n*n], r[n*n]; //まず適当な行列を作成する
-    double qinv[n*n];
-    srand(seed);//計算結果比較のためシード固定
-    //srand((unsigned)time(NULL));
-    for(int i = 0; i < n*n; ++i){
-        X[i] = ((double)rand()/ ((double)RAND_MAX + 1));
-    }
-    matcpy(X, r, n);
-    qr(q, r, n);
-    matcpy(q, qinv, n);
-    //print_mat(X, n, n);
-    for(int i=0; i < n*n; i++){
-        if(i == 0){ //1つ目の対角成分
-            a[i] = emax;
-        }
-        else if(i == (1*n+1)){ //2つ目の対角成分
-            a[i] = emin;
-        }
-        else if((i/n)==(i%n)){ //それ以外の対角成分
-            a[i] = ((double)rand()/ ((double)RAND_MAX))*(emax-emin) + emin;
-        }
-        else{ //対角成分以外は0
-            a[i] = 0.0;
-        }
-    }
-    
-    matrix_inv(qinv, n);
-    double tmp[n*n];
-    mat_multi(q, a, tmp, n); //tmp = X@a
-    mat_multi(tmp, qinv, A, n); //A = tmp@Xinv
-
-    return ;
-}
-
-double normf(double *A, int n){
-    int nn = n*n, incx = 1;
-    return dnrm2_(&nn, A, &incx);
-}
-
-/*
-定義から解を得る関数
-引数にansを加える
-このようにすることで負の固有値が含まれる場合の解析解を計算できるようにする
-char ch = 'n'とするとき，固有値に負が含まれるようにする
-*/
-void setmatrix_sym2(double *A, int n, double emax, double emin, int seed, double *ans, char ch){
-    double X[n*n], a[n*n], q[n*n], r[n*n]; 
-    double qinv[n*n];
-    srand(seed);//計算結果比較のためシード固定
-    //srand((unsigned)time(NULL));
-    for(int i = 0; i < n*n; ++i){
-        X[i] = ((double)rand()/ ((double)RAND_MAX + 1));
-    }
-    matcpy(X, r, n);
-    qr(q, r, n);
-    matcpy(q, qinv, n);
-    //print_mat(X, n, n);
-    for(int i=0; i < n*n; i++){
-        if(i == 0){ //1つ目の対角成分
-            a[i] = emax;
-        }
-        else if(i == (1*n+1)){ //2つ目の対角成分
-            a[i] = emin;
-        }
-        else if((i/n)==(i%n)){ //それ以外の対角成分
-            a[i] = ((double)rand()/ ((double)RAND_MAX))*(emax-emin) + emin;
-            if(ch == 'n'){
-                a[i] = -a[i];
-            }
-        }
-        else{ //対角成分以外は0
-            a[i] = 0.0;
-        }
-    }
-    
-    matcpy(a, ans, n);
-    sign_jordan(ans, q, n);
-
-    matrix_inv(qinv, n);
-    double tmp[n*n];
-    mat_multi(q, a, tmp, n); //tmp = X@a
-    mat_multi(tmp, qinv, A, n); //A = tmp@Xinv
-
-    return ;
-}
-
-
-/*
-固有値分解できているときは行列符号関数を定義から計算できる
-固有値が対角成分に並んだ対角行列と固有ベクトル行列，行列サイズn*nのnを引数に取る
-
-double *eig[in, out]: 対角行列．計算後，結果はここに入る
-*/
-void sign_jordan(double *eig, double *evec, int size){
-    double evec_inv[size*size], tmp[size*size];
-    
-    //sign(eig)
-    for(int i=0; i < size; i++){
-        double eigv = eig[i + size*i];
-        if(eigv > 0){
-            eig[i+size*i] = 1.0;
-        }
-        else if(eigv < 0){
-            eig[i + size*i] = -1.0;
-        }
-        else{
-            printf("error: eigenvalue can not be zero. %lf eig[%d]\n", eigv, i);
-            return ;
-        }
-        //0の場合はエラー(double型で0になることもないとは思うけど)
-    }
-    
-    matcpy(evec, evec_inv, size);
-    matrix_inv(evec_inv, size);
-
-    mat_multi(evec, eig, tmp, size);
-    mat_multi(tmp, evec_inv, eig, size);
-    return ;
 }

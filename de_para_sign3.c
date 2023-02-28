@@ -110,9 +110,9 @@ void deformula(double h, int size, double A[], double a2[], int N, int nprocs, i
 int main(int argc,char *argv[])
 {
     double emin = 0.1, emax=10, A[SIZE*SIZE], A2[SIZE*SIZE], I[SIZE*SIZE], etime;
-    setmatrix2(A, I, SIZE, SIZE, emax, emin, 4);
+    setmatrix2(A, I, SIZE, SIZE, emax, emin, 1);
     double h = 0.1;    
-    int nmax = 45, nn = SIZE*SIZE;
+    int nmax = 40, nn = SIZE*SIZE;
     MPI_Init(&argc, &argv);
     int myrank, nprocs;
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
